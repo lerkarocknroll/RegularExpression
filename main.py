@@ -20,28 +20,24 @@ def format_phone(phone):
         extension = f' доб.{extension_match.group(1)}'
         phone = re.sub(r'доб\.?\s*\d+', '', phone, flags=re.IGNORECASE)
 
-    # Удаляем все нецифровые символы, кроме "+"
-    phone = re.sub(r'[^\d+]', '', phone)
+    # Удаляем все нецифровые символы
+    phone = re.sub(r'\D', '', phone)
 
     # Если номер пустой после очистки
     if not phone:
         return ''
 
-    # Если номер начинается с 8, заменяем на +7
-    if phone.startswith('8'):
-        phone = '7' + phone[1:]
-    # Если номер начинается с 7, добавляем +
-    elif phone.startswith('7'):
-        phone = '+' + phone
-    # Если номер не начинается с +7, но имеет 11 цифр
-    elif len(phone) == 11:
-        phone = '+7' + phone[1:]
-
-    # Форматируем основной номер
-    if len(phone) == 12 and phone.startswith('+7'):
-        formatted_phone = f"+7({phone[2:5]}){phone[5:8]}-{phone[8:10]}-{phone[10:12]}"
-        return formatted_phone + extension
+    # Если номер начинается с 8 или 7, делаем +7
+    if phone.startswith('8') or phone.startswith('7'):
+        if len(phone) == 11:
+            # Форматируем как +7(999)999-99-99
+            formatted_phone = f"+7({phone[1:4]}){phone[4:7]}-{phone[7:9]}-{phone[9:11]}"
+            return formatted_phone + extension
+        else:
+            # Если номер неполный, возвращаем как есть
+            return f"+7{phone[1:]}" + extension
     else:
+        # Если номер не начинается с 7 или 8, возвращаем как есть
         return phone + extension
 
 
@@ -61,12 +57,15 @@ def parse_fio(contact):
 
 # Шаг 1: Приводим в порядок ФИО и телефоны
 processed_contacts = []
-for contact in contacts_list:
+header = None
+
+for i, contact in enumerate(contacts_list):
     if not any(contact):  # Пропускаем пустые строки
         continue
 
-    # Пропускаем заголовок
-    if contact[0] == 'lastname' and contact[1] == 'firstname':
+    # Сохраняем заголовок
+    if i == 0:
+        header = contact
         continue
 
     # Парсим ФИО (без регулярок)
@@ -91,7 +90,7 @@ for contact in contacts_list:
 # Шаг 2: Объединяем дублирующиеся записи по Фамилии и Имени
 unique_contacts = {}
 for contact in processed_contacts:
-    key = (contact[0], contact[1])  # Ключ по Фамилии и Имени (как в задании)
+    key = (contact[0], contact[1])  # Ключ по Фамилии и Имени
 
     if key in unique_contacts:
         # Объединяем данные существующего контакта с новыми
@@ -106,7 +105,7 @@ for contact in processed_contacts:
 final_contacts = list(unique_contacts.values())
 
 # Добавляем заголовок
-final_contacts.insert(0, ['lastname', 'firstname', 'surname', 'organization', 'position', 'phone', 'email'])
+final_contacts.insert(0, header)
 
 # Заменяем исходный список
 contacts_list = final_contacts
